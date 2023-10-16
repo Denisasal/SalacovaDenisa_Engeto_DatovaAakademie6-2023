@@ -83,6 +83,9 @@ GROUP BY industry_branch_code , payroll_year
 ORDER BY industry_branch_code , payroll_year ;
 
 
+--zkouška uložení verze v Gitu--
+
+
 
 
 
