@@ -1,3 +1,4 @@
+
 --Otzázka 1--
 
 SELECT*
@@ -84,10 +85,3 @@ ORDER BY industry_branch_code , payroll_year ;
 
 
 --zkouška uložení verze v Gitu--
-
-
-
-
-
-
-
