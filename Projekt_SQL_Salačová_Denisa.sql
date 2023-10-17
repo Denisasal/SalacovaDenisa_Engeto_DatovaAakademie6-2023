@@ -85,7 +85,7 @@ ORDER BY industry_branch_code , payroll_year ;
 
 --zkouška uložení verze v Gitu--
 
---zkouška2--
+
 
 
 
