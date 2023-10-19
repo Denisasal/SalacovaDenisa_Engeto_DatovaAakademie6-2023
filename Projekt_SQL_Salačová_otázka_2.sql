@@ -67,12 +67,13 @@ SELECT
 	payroll_year AS rok,
 	SUM (value) AS součet_mzdy
 FROM czechia_payroll cp 
-WHERE payroll_year = 2006
+WHERE payroll_year = 2006 AND calculation_code = 200 AND value_type_code = 5958
 ORDER BY payroll_year ASC;
 
 
-SELECT 3317691/15
--Výsledek- 221179,4 kg chleba--
+SELECT 1686698/15
+
+-Výsledek- 112 446,5 kg chleba--
 
 
 SELECT
@@ -80,3 +81,5 @@ SELECT
 	CEIL(AVG(value)) AS průměrná_cena 
 FROM czechia_price cp 
 WHERE category_code = 114201 AND date_from = '06-01-02' AND '06-12-24'
+
+SELECT 3317691/15
