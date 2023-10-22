@@ -59,7 +59,7 @@ SELECT
 FROM t_potraviny_roční_ceny tprc ;
  
  
- 
+
  
 
 
