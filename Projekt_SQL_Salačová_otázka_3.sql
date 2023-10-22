@@ -20,7 +20,7 @@ GROUP BY cp.category_code, EXTRACT(YEAR FROM cp.date_from)
 ORDER BY cpc.code, cp.date_from ASC ;
 
 
-CREATE TABLE t_POTRAVINY_Roční_ceny AS
+CREATE TABLE t_potraviny_roční_ceny AS
 	SELECT
 	cp.category_code AS kód_kategorie,
 	cpc.name AS kategorie,
@@ -36,10 +36,10 @@ ORDER BY cpc.code, cp.date_from ASC;
 
 SELECT*
 FROM t_potraviny_roční_ceny tprc ;
+ 
 
 
-
-WITH t_potraviny_roční_ceny  AS (
+WITH t_potraviny_roční_ceny AS (
   SELECT
     cp.category_code AS kód_kategorie,
     cpc.name AS kategorie,
@@ -50,17 +50,13 @@ WITH t_potraviny_roční_ceny  AS (
   GROUP BY cp.category_code, EXTRACT(YEAR FROM cp.date_from)
 )
 SELECT
-	tprc.kód_kategorie,
- 	tprc.kategorie ,
- 	tprc.rok ,
-	tprc.cena_za_rok,
-  ROUND(LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok),2) AS cena_za_predchozi_rok,
-  ROUND(((tprc.cena_za_rok - LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok)) / LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok) * 100),2) AS procentualni_rust
-FROM t_potraviny_roční_ceny tprc ;
- 
- 
-
- 
-
-
-
+  tprc.kód_kategorie,
+  tprc.kategorie,
+  tprc.rok,
+  tprc.cena_za_rok,
+  LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok) AS cena_za_predchozi_rok,
+  CASE
+    WHEN LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok) IS NULL THEN 0
+    ELSE ROUND(((tprc.cena_za_rok - LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok)) / LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok) * 100), 2)
+  END AS procentualni_rust
+FROM t_potraviny_roční_ceny tprc;
