@@ -18,14 +18,14 @@ SELECT
     cp.industry_branch_code AS kód_odvětví,
     cpib.name AS název_odvětví,
     cp.payroll_year AS rok,
-    cp.value AS průměrná_mzda,
-    LAG(value) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year) AS průměrné_mzdy_předchozí_rok,
+    cp.value AS mzdy,
+    LAG(value) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year) AS mzdy_předchozí_rok,
     ROUND(
         CASE
             WHEN LAG(value) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year) IS NULL THEN 0
             ELSE (value - LAG(value) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year))
         END, 2
-    ) AS mezirocni_rust
+    ) AS mezirocni_rust_mezd
 FROM czechia_payroll cp
 LEFT JOIN czechia_payroll_industry_branch cpib
     ON cp.industry_branch_code = cpib.code
@@ -37,7 +37,7 @@ ORDER BY industry_branch_code, payroll_year;
 
 
 CREATE TABLE t_potraviny_rocni_rust_cen AS
- WITH t_potraviny_roční_ceny AS (
+WITH t_potraviny_roční_ceny AS (
   SELECT
     cp.category_code AS kód_kategorie,
     cpc.name AS kategorie,
@@ -53,7 +53,10 @@ SELECT
   tprc.rok,
   tprc.cena_za_rok,
   ROUND(LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok), 2) AS cena_za_predchozi_rok,
-  tprc.cena_za_rok - LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok) AS mezirocni_rust
+  CASE
+    WHEN LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok) IS NULL THEN 0
+    ELSE tprc.cena_za_rok - LAG(tprc.cena_za_rok) OVER (PARTITION BY tprc.kód_kategorie ORDER BY tprc.rok)
+  END AS mezirocni_rust_cen
 FROM t_potraviny_roční_ceny tprc;
 
 
@@ -65,22 +68,22 @@ FROM t_potraviny_rocni_rust_cen tprrc ;
 
 
 SELECT
-	rok ,
-	SUM (průměrná_mzda) AS mzda_celkem_za_rok,
-	SUM (průměrné_mzdy_předchozí_rok)AS mzda_celkem_za_předchozí_rok,
-	SUM(mezirocni_rust) AS celkem_mezirocni_růst
-FROM t_mzdy_rocni_rust_cen tmrrc
+	rok,
+	SUM (mzdy) AS mzda_celkem_za_rok,
+	SUM (mzdy_předchozí_rok)AS mzda_celkem_za_předchozí_rok,
+	SUM(mezirocni_rust_mezd) AS celkem_mezirocni_růst
+FROM t_mzdy_rocni_rust_cen tmrrc2 
 WHERE rok BETWEEN 2006 AND 2018
 GROUP BY rok ; 
 
 SELECT
     rok,
-    SUM(průměrná_mzda) AS mzda_celkem_za_rok,
-    SUM(průměrné_mzdy_předchozí_rok) AS mzda_celkem_za_předchozí_rok,
+    SUM(mzdy) AS mzda_celkem_za_rok,
+    SUM(mzdy_předchozí_rok) AS mzda_celkem_za_předchozí_rok,
     ROUND(
-        ((SUM(průměrná_mzda) - SUM(průměrné_mzdy_předchozí_rok)) / SUM(průměrné_mzdy_předchozí_rok)) * 100, 2
+        ((SUM(mzdy) - SUM(mzdy_předchozí_rok)) / SUM(mzdy_předchozí_rok)) * 100, 2
     ) AS celkem_mezirocni_rust_mezd_v_procentech
-FROM t_mzdy_rocni_rust_cen tmrrc
+FROM t_mzdy_rocni_rust_cen tmrrc 
 WHERE rok BETWEEN 2006 AND 2018
 GROUP BY rok;
 
@@ -98,12 +101,10 @@ GROUP BY rok ;
 
 
 
-
-
 SELECT
     tmrrc.rok,
     ROUND(
-        ((SUM(tmrrc.průměrná_mzda) - SUM(tmrrc.průměrné_mzdy_předchozí_rok)) / SUM(tmrrc.průměrné_mzdy_předchozí_rok)) * 100, 2
+        ((SUM(tmrrc.mzdy) - SUM(tmrrc.mzdy_předchozí_rok)) / SUM(tmrrc.mzdy_předchozí_rok)) * 100, 2
     ) AS celkem_mezirocni_rust_mezd_v_procentech,
     ROUND(
         ((SUM(tprrc.cena_za_rok) - SUM(tprrc.cena_za_predchozi_rok)) / SUM(tprrc.cena_za_predchozi_rok)) * 100, 2
