@@ -19,23 +19,23 @@ FROM czechia_payroll_unit cpu ;
 
 SELECT*
 FROM czechia_payroll cp 
-WHERE value_type_code = 5958 AND calculation_code = 100 AND unit_code = 200;
+WHERE value_type_code = 5958 AND unit_code = 200;
 
 
 SELECT*
 FROM czechia_payroll cp 
 LEFT JOIN czechia_payroll_industry_branch cpib 
 	ON cp.industry_branch_code = cpib.code 
-WHERE value_type_code = 5958 AND calculation_code = 100 AND unit_code = 200;
+WHERE value_type_code = 5958 AND unit_code = 200;
 
 
 SELECT
 	industry_branch_code AS kód_oddělení,
 	payroll_year AS rok ,
 	payroll_quarter AS kvartál ,
-	SUM(value) AS součet_průměrné_mzdy
+	AVG(value) AS průměrná_mzda
 FROM czechia_payroll cp 
-WHERE industry_branch_code IS NOT NULL
+WHERE value_type_code = 5958 AND unit_code = 200 AND industry_branch_code IS NOT NULL
 GROUP BY industry_branch_code , payroll_quarter ,payroll_year 
 ORDER BY industry_branch_code , payroll_year , payroll_quarter ;
 
@@ -44,7 +44,7 @@ SELECT
 	cpib.name AS název_odvětví,
 	cp.payroll_quarter AS kvartál,
 	cp.payroll_year AS rok ,
-	SUM(cp.value) AS součet_průměrné_mzdy
+	AVG(cp.value) AS součet_mzdy
 FROM czechia_payroll cp 
 LEFT JOIN czechia_payroll_industry_branch cpib 
 	ON cp.industry_branch_code = cpib.code 
@@ -57,7 +57,7 @@ SELECT
 	cp.industry_branch_code AS kód_odětví,
 	cpib.name AS název_odvětví,
 	cp.payroll_year AS rok ,
-	SUM(cp.value) AS součet_průměrné_mzdy
+	ROUND (AVG (cp.value),2) AS průměr_mzdy
 FROM czechia_payroll cp 
 LEFT JOIN czechia_payroll_industry_branch cpib 
 	ON cp.industry_branch_code = cpib.code 
@@ -67,21 +67,53 @@ ORDER BY cp.industry_branch_code , cp.payroll_year , cp.payroll_quarter ;
 
 
 SELECT
-    cp.industry_branch_code AS kód_odvětví ,
+    cp.industry_branch_code AS kód_odvětví,
     cpib.name AS název_odvětví,
     cp.payroll_year AS rok,
-    cp.value AS průměrná_mzda,
-    LAG(value) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year) AS průměrné_mzdy_předchozí_rok,
+    CEIL(AVG(cp.value)) AS průměrná_mzda,
+    LAG(CEIL(AVG(value))) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year) AS průměrné_mzdy_předchozí_rok,
     CASE
-        WHEN LAG(value) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year) IS NULL THEN 0
-        ELSE value - LAG(value) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year)
+        WHEN LAG(CEIL(AVG(value))) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year) IS NULL THEN 0
+        ELSE CEIL(AVG(value)) - LAG(CEIL(AVG(value))) OVER (PARTITION BY industry_branch_code ORDER BY payroll_year)
     END AS meziroční_růst_mzdy
 FROM czechia_payroll cp
 LEFT JOIN czechia_payroll_industry_branch cpib 
-	ON cp.industry_branch_code = cpib.code 
+    ON cp.industry_branch_code = cpib.code 
 WHERE cp.value_type_code = 5958 AND cp.unit_code = 200 AND cp.industry_branch_code IS NOT NULL
-GROUP BY industry_branch_code , payroll_year 
-ORDER BY industry_branch_code , payroll_year ;
+GROUP BY industry_branch_code, payroll_year 
+ORDER BY industry_branch_code, payroll_year;
 
 
 --zkouška uložení verze v Gitu--
+
+
+SELECT
+    cp.industry_branch_code AS kód_odvětví,
+    cpib.name AS název_odvětví,
+    cp.payroll_year AS rok,
+    CEIL(AVG(cp.value)) AS průměrná_mzda,
+    LAG(CEIL(AVG(cp.value))) OVER (PARTITION BY cp.industry_branch_code ORDER BY cp.payroll_year) AS průměrné_mzdy_předchozí_rok,
+    ROUND(
+    CASE
+        WHEN LAG(AVG(cp.value)) OVER (PARTITION BY cp.industry_branch_code ORDER BY cp.payroll_year) IS NULL THEN 0
+        ELSE(AVG(cp.value) - LAG(AVG(cp.value)) OVER (PARTITION BY cp.industry_branch_code ORDER BY cp.payroll_year)) / LAG(AVG(cp.value)) OVER (PARTITION BY cp.industry_branch_code ORDER BY cp.payroll_year) * 100
+    END,2) AS meziroční_růst_mzdy_v_procentech
+FROM czechia_payroll cp
+LEFT JOIN czechia_payroll_industry_branch cpib ON cp.industry_branch_code = cpib.code
+WHERE cp.value_type_code = 5958 AND cp.unit_code = 200 AND cp.industry_branch_code IS NOT NULL
+GROUP BY cp.industry_branch_code, cp.payroll_year
+ORDER BY cp.industry_branch_code, cp.payroll_year;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
