@@ -5,25 +5,17 @@ SELECT*
 FROM countries c 
 
 
-SELECT
-	country ,
-	`year` ,
-	GDP ,
-	taxes 
-FROM economies e 
-WHERE country = 'Czech Republic' AND `year` BETWEEN 2006 AND 2018
-ORDER BY `year` ASC;
 
 SELECT
-	rok ,
-	ROUND (SUM (cena_za_rok),2) AS součet_cen_potravin_za_rok
-FROM t_potraviny_rocni_rust_cen tprrc 
-GROUP BY rok ;
-
-SELECT
-*
-FROM t_mzdy_rocni_rust_cen tmrrc 
-
+    tdspspf.rok,
+    tdspssf.economies_country AS země,
+    tdspspf.mezirocni_rust_mezd_v_procentech,
+    tdspspf.procentualni_rust AS procentualni_rust_cen,
+    ROUND(((tdspssf.GDP - LAG(tdspssf.GDP) OVER (ORDER BY tdspspf.rok)) / LAG(tdspssf.GDP) OVER (ORDER BY tdspspf.rok)) * 100, 2) 
+    AS procentualní_růst_HDP
+FROM t_denisa_salacova_project_sql_primary_final tdspspf
+JOIN t_denisa_salacova_project_sql_secondary_final tdspssf ON tdspspf.rok = tdspssf.`year` AND tdspssf.economies_country = 'Czech Republic'
+GROUP BY tdspspf.rok, tdspssf.economies_country, tdspssf.GDP;
 
 
 
